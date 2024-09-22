@@ -1,11 +1,24 @@
+import asyncio
 from flask import Blueprint, jsonify
 import psutil
 import platform
 import cpuinfo  # 用于获取详细的 CPU 信息
-
 import clr  # 引入 pythonnet 的 clr 模块
+# from apscheduler.schedulers.asyncio import AsyncIOScheduler
+# from apscheduler.executors.asyncio import AsyncIOExecutor
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.executors.pool import ThreadPoolExecutor
+import atexit
+
 clr.AddReference(r'dll/LibreHardwareMonitor-net472/LibreHardwareMonitorLib')
-from LibreHardwareMonitor.Hardware import Computer , SensorType, HardwareType  # type: ignore
+from LibreHardwareMonitor.Hardware import Computer, SensorType, HardwareType  # type: ignore
+
+import logging
+
+# 设置日志
+logging.basicConfig(level=logging.INFO)
+logging.getLogger('apscheduler').setLevel(logging.WARNING)  # 将 APScheduler 的日志级别提高到 WARNING
+logging.getLogger('werkzeug').setLevel(logging.INFO)  # 将 Werkzeug (Flask 默认服务器) 的日志级别提高到 WARNING
 
 # 创建蓝图
 api_blueprint = Blueprint('api', __name__)
@@ -13,36 +26,41 @@ api_blueprint = Blueprint('api', __name__)
 # 初始化 last_net_io
 last_net_io = psutil.net_io_counters()
 
-# 缓存字典，存储所有设备
-hardware_cache = {}
-hardware_cache['gpus'] = []
+# 缓存字典，存储所有设备的信息
+hardware_cache = {
+    'motherboard': None,
+    'memory': None,
+    'cpu': None,
+    'gpus': [],
+    'disk_usage': [],
+    'network_stats': {},
+    'battery': None,
+}
 
-def init_hardware():
-    # 初始化 Computer 对象
+async def init_hardware():
     computer = Computer()
     computer.IsCpuEnabled = True
     computer.IsGpuEnabled = True
     computer.IsMotherboardEnabled = True
     computer.IsMemoryEnabled = True
     computer.Open()
-
-    # 遍历所有硬件设备
+    
     for hardware in computer.Hardware:
-        print(hardware.HardwareType)  # 打印出硬件类型以供调试
-        hardware.Update()  # 初始获取数据
+        await asyncio.to_thread(hardware.Update)
         if hardware.HardwareType == HardwareType.Motherboard:
             hardware_cache['motherboard'] = hardware
-        if hardware.HardwareType == HardwareType.Memory:
+        elif hardware.HardwareType == HardwareType.Memory:
             hardware_cache['memory'] = hardware
-        if hardware.HardwareType == HardwareType.Cpu:
+        elif hardware.HardwareType == HardwareType.Cpu:
             hardware_cache['cpu'] = hardware
-        if hardware.HardwareType == HardwareType.GpuAmd or hardware.HardwareType == HardwareType.GpuNvidia:
+            hardware_cache['cpu_model'] = cpuinfo.get_cpu_info().get('brand_raw', '未知型号')
+        elif hardware.HardwareType in (HardwareType.GpuAmd, HardwareType.GpuNvidia):
             hardware_cache['gpus'].append(hardware)
+    
+    logging.debug("硬件初始化成功")
+    return computer
 
-    return computer  # 返回 computer 对象，以便后续使用
-
-# 调用初始化函数，启动时遍历所有设备
-computer = init_hardware()
+computer = asyncio.run(init_hardware())
 
 def format_speed(bytes_per_sec):
     if bytes_per_sec < 1024:
@@ -53,53 +71,139 @@ def format_speed(bytes_per_sec):
         return f"{bytes_per_sec / 1024**2:.2f} MB/s"
     else:
         return f"{bytes_per_sec / 1024**3:.2f} GB/s"
-    
-# 获取主板信息
-def get_motherboard_info_libre():
-    motherboard_stats = {}
-    motherboard = hardware_cache.get('motherboard', None)  # 使用 None 而不是空列表
-    
-    if motherboard:
-        motherboard.Update()  # 更新主板数据
-        motherboard_stats = {
-            'model': motherboard.Name  # 只返回主板名称
+
+async def update_cpu_info():
+    cpu = hardware_cache.get('cpu')
+    if cpu:
+        await asyncio.to_thread(cpu.Update)
+        # 更新硬件缓存中的CPU信息
+        # 这里可以添加更多的CPU信息更新逻辑
+
+async def update_memory_info():
+    memory = hardware_cache.get('memory')
+    if memory:
+        await asyncio.to_thread(memory.Update)
+        # 更新硬件缓存中的内存信息
+        # 这里可以添加更多的内存信息更新逻辑
+
+def update_disk_info():
+    disk_usage = []
+    for partition in psutil.disk_partitions():
+        try:
+            usage = psutil.disk_usage(partition.mountpoint)
+            disk_usage.append({
+                'device': partition.device,
+                'used': f"{usage.used / (1024**3):.2f} GB",
+                'total': f"{usage.total / (1024**3):.2f} GB",
+                'percent': f"{usage.percent}%"
+            })
+        except PermissionError:
+            continue
+    hardware_cache['disk_usage'] = disk_usage
+
+# 更新网络信息
+def update_network_info():
+    global last_net_io
+    try:
+        net_io = psutil.net_io_counters()
+
+        down_speed = net_io.bytes_recv - last_net_io.bytes_recv
+        up_speed = net_io.bytes_sent - last_net_io.bytes_sent
+
+        hardware_cache['network_stats'] = {
+            'net_rx': format_speed(down_speed),
+            'net_tx': format_speed(up_speed)
+        }
+        last_net_io = net_io
+    except Exception as e:
+        logging.error(f"Error updating network info: {e}")
+
+
+def update_battery_info():
+    battery = psutil.sensors_battery()
+    if battery is None:
+        hardware_cache['battery'] = {
+            'status': '未检测到电池',
+            'power_source': '交流电'
         }
     else:
-        motherboard_stats = {
-            'status': '未检测到主板'
+        hardware_cache['battery'] = {
+            'percent': f"{battery.percent}%",
+            'time_left': f"{battery.secsleft // 3600}小时{(battery.secsleft % 3600) // 60}分钟" if battery.secsleft != psutil.POWER_TIME_UNLIMITED else "剩余时间无限",
+            'power_plugged': '是' if battery.power_plugged else '否',
+            'status': '正在充电' if battery.power_plugged else '未充电'
         }
 
-    return motherboard_stats
+async def update_gpu_info():
+    gpus = hardware_cache.get('gpus', [])
+    unique_gpus = set()  # 使用集合来存储唯一的 GPU 名称
+    updated_gpus = []
 
-# 获取内存信息
-def get_memory_info():
-    memory_stats = {}
-    
-    # 获取虚拟内存信息
-    virtual_memory = psutil.virtual_memory()
-    memory_stats['total_memory'] = f"{virtual_memory.total / (1024 ** 3):.2f} GB"  # 总内存
-    memory_stats['available_memory'] = f"{virtual_memory.available / (1024 ** 3):.2f} GB"  # 可用内存
-    memory_stats['used_memory'] = f"{virtual_memory.used / (1024 ** 3):.2f} GB"  # 已用内存
-    memory_stats['memory_percent'] = f"{virtual_memory.percent}%"  # 内存使用率
+    for gpu in gpus:
+        try:
+            await asyncio.to_thread(gpu.Update)
+            if gpu.Name not in unique_gpus:
+                unique_gpus.add(gpu.Name)
+                updated_gpus.append(gpu)
+        except Exception as e:
+            print(f"更新GPU信息时发生错误: {e}")
 
-    # 获取交换内存信息
-    swap_memory = psutil.swap_memory()
-    memory_stats['total_swap'] = f"{swap_memory.total / (1024 ** 3):.2f} GB"  # 总交换内存
-    memory_stats['used_swap'] = f"{swap_memory.used / (1024 ** 3):.2f} GB"  # 已用交换内存
-    memory_stats['free_swap'] = f"{swap_memory.free / (1024 ** 3):.2f} GB"  # 可用交换内存
-    memory_stats['swap_percent'] = f"{swap_memory.percent}%"  # 交换内存使用率
+    hardware_cache['gpus'] = updated_gpus  # 更新整个列表
 
-    return memory_stats
+# 定义调度器
+executors = {
+    'default': ThreadPoolExecutor(20)  # 使用线程池
+}
+scheduler = BackgroundScheduler(executors=executors)
 
-# 获取 CPU 信息
-def get_cpu_info_libre():
-    cpu_stats = {}
-    cpu = hardware_cache.get('cpu')
+# 包装函数，用于在 APScheduler 中运行异步任务
+def run_async_job(func, *args, **kwargs):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(func(*args, **kwargs))
+    finally:
+        loop.close()
 
+# 添加定时任务
+try:
+    # 首先手动调用每个更新函数以获取初始数据
+    asyncio.run(update_cpu_info())
+    asyncio.run(update_memory_info())
+    update_disk_info()
+    update_network_info()
+    update_battery_info()
+    asyncio.run(update_gpu_info())
+
+    scheduler.add_job(run_async_job, 'interval', seconds=1, args=(update_cpu_info,), max_instances=2)
+    scheduler.add_job(run_async_job, 'interval', seconds=1, args=(update_memory_info,), max_instances=2)
+    scheduler.add_job(update_disk_info, 'interval', seconds=10, max_instances=2)
+    scheduler.add_job(update_network_info, 'interval', seconds=1, max_instances=2)
+    scheduler.add_job(update_battery_info, 'interval', seconds=30, max_instances=2)
+    scheduler.add_job(run_async_job, 'interval', seconds=2, args=(update_gpu_info,), max_instances=2)
+except Exception as e:
+    logging.error(f"Error adding jobs to scheduler: {e}")
+
+# 定义关闭处理函数
+def shutdown_scheduler():
+    scheduler.shutdown(wait=False)
+
+# 注册关闭处理函数
+atexit.register(shutdown_scheduler)
+
+# API 路由定义
+@api_blueprint.route('/api/motherboard', methods=['GET'])
+async def get_motherboard_info():
+    motherboard = hardware_cache['motherboard']
+    mb_stats = {'model': motherboard.Name} if motherboard else {'status': '未检测到主板'}
+    return jsonify(mb_stats)
+
+@api_blueprint.route('/api/cpu', methods=['GET'])
+async def get_cpu_info():
+    cpu = hardware_cache['cpu']
     if cpu:
-        cpu.Update()
         cpu_stats = {
-            'cpu_model': cpuinfo.get_cpu_info().get('brand_raw', '未知型号'),
+            'cpu_model': hardware_cache.get('cpu_model', '未知型号'),
             'cpu_freq': "不支持",
             'cpu_usage': "不支持",
             'cpu_temp': "不支持",
@@ -123,16 +227,48 @@ def get_cpu_info_libre():
                 cpu_stats['cpu_power'] = f"{sensor.Value * 10:.1f} W"
             if sensor.SensorType == SensorType.Fan:
                 cpu_stats['cpu_fan_speed'] = f"{sensor.Value} RPM"
-    
-    return cpu_stats
+    else:
+        cpu_stats = {'status': '未检测到CPU信息'}
 
-# 获取 GPU 信息
-def get_gpu_info_libre():
+    return jsonify(cpu_stats)
+
+@api_blueprint.route('/api/memory', methods=['GET'])
+async def get_memory_info_endpoint():
+    memory = hardware_cache['memory']
+    if memory:
+        virtual_memory = psutil.virtual_memory()
+        swap_memory = psutil.swap_memory()
+        memory_stats = {
+            'total_memory': f"{virtual_memory.total / (1024 ** 3):.2f} GB",  # 总内存
+            'available_memory': f"{virtual_memory.available / (1024 ** 3):.2f} GB",  # 可用内存
+            'used_memory': f"{virtual_memory.used / (1024 ** 3):.2f} GB",  # 已用内存
+            'memory_percent': f"{virtual_memory.percent}%",  # 内存使用率
+            'total_swap': f"{swap_memory.total / (1024 ** 3):.2f} GB",  # 总交换内存
+            'used_swap': f"{swap_memory.used / (1024 ** 3):.2f} GB",  # 已用交换内存
+            'free_swap': f"{swap_memory.free / (1024 ** 3):.2f} GB",  # 可用交换内存
+            'swap_percent': f"{swap_memory.percent}%"  # 交换内存使用率
+        }
+    else:
+        memory_stats = {'status': '未检测到内存'}
+
+    return jsonify(memory_stats)
+
+@api_blueprint.route('/api/disk', methods=['GET'])
+def get_disk_info():
+    disk_usage = hardware_cache['disk_usage']
+    return jsonify({'disk_usage': disk_usage})
+
+@api_blueprint.route('/api/network', methods=['GET'])
+def get_network_info():
+    network_stats = hardware_cache['network_stats']
+    return jsonify(network_stats)
+
+@api_blueprint.route('/api/gpu', methods=['GET'])
+async def get_gpu_info():
+    gpus = hardware_cache['gpus']
     gpu_stats = []
-    gpus = hardware_cache.get('gpus', [])
-    
+
     for gpu in gpus:
-        gpu.Update()
         gpu_info = {
             'model': gpu.Name,
             'usage': "不支持",
@@ -160,7 +296,6 @@ def get_gpu_info_libre():
                 gpu_info['memory_clock'] = f"{sensor.Value:.2f} MHz"
             elif sensor.SensorType == SensorType.Temperature and "Memory" in sensor.Name:
                 gpu_info['memory_temp'] = f"{sensor.Value:.2f} °C"
-                #没有这玩意
             elif sensor.SensorType == SensorType.Factor and "FPS" in sensor.Name:
                 gpu_info['fps'] = f"{sensor.Value:.2f} FPS" if sensor.Value >= 0 else "无效帧率"
             elif sensor.SensorType == SensorType.Fan:
@@ -171,85 +306,9 @@ def get_gpu_info_libre():
                 gpu_info['shared_memory_usage'] = f"{sensor.Value:.2f} MB"
         gpu_stats.append(gpu_info)
     
-    return gpu_stats
-
-# 单独的 API 端点来获取主板信息
-@api_blueprint.route('/api/motherboard', methods=['GET'])
-def get_motherboard_info():
-    mb_stats = get_motherboard_info_libre()
-    return jsonify(mb_stats)
-
-
-# 单独的 API 端点来获取 CPU 信息
-@api_blueprint.route('/api/cpu', methods=['GET'])
-def get_cpu_info():
-    cpu_stats = get_cpu_info_libre()
-    return jsonify(cpu_stats)
-
-# 单独的 API 端点来获取内存信息
-@api_blueprint.route('/api/memory', methods=['GET'])
-def get_memory_info_endpoint():
-    memory_stats = get_memory_info()
-    return jsonify(memory_stats)
-
-# 单独的 API 端点来获取磁盘信息
-@api_blueprint.route('/api/disk', methods=['GET'])
-def get_disk_info():
-    disk_usage = []
-    for partition in psutil.disk_partitions():
-        try:
-            usage = psutil.disk_usage(partition.mountpoint)
-            disk_usage.append({
-                'device': partition.device,
-                'used': f"{usage.used / (1024**3):.2f} GB",
-                'total': f"{usage.total / (1024**3):.2f} GB",
-                'percent': f"{usage.percent}%"
-            })
-        except PermissionError:
-            continue
-    return jsonify({'disk_usage': disk_usage})
-
-# 单独的 API 端点来获取网络流量信息
-@api_blueprint.route('/api/network', methods=['GET'])
-def get_network_info():
-    global last_net_io
-    net_io = psutil.net_io_counters()
-    down_speed = net_io.bytes_recv - last_net_io.bytes_recv
-    up_speed = net_io.bytes_sent - last_net_io.bytes_sent
-
-    network_stats = {
-        'net_rx': format_speed(down_speed),
-        'net_tx': format_speed(up_speed)
-    }
-
-    last_net_io = net_io  # 更新上次网络统计数据
-    return jsonify(network_stats)
-
-# 单独的 API 端点来获取 GPU 信息
-@api_blueprint.route('/api/gpu', methods=['GET'])
-def get_gpu_info():
-    gpu_stats = get_gpu_info_libre()
     return jsonify(gpu_stats)
 
-# 单独的 API 端点来获取电池状态
 @api_blueprint.route('/api/battery', methods=['GET'])
 def get_battery_info():
-    battery = psutil.sensors_battery()
-    
-    # 如果没有检测到电池
-    if battery is None:
-        battery_stats = {
-            'status': '未检测到电池',
-            'power_source': '交流电'  # 默认假设使用交流电
-        }
-    else:
-        battery_stats = {
-            'percent': f"{battery.percent}%",  # 电池百分比
-            'time_left': f"{battery.secsleft // 3600}小时{(battery.secsleft % 3600) // 60}分钟" if battery.secsleft != psutil.POWER_TIME_UNLIMITED else "剩余时间无限",
-            'power_plugged': '是' if battery.power_plugged else '否',
-            'status': '正在充电' if battery.power_plugged else '未充电'
-        }
-    
-    return jsonify(battery_stats)
-
-# 注意：记得在适当的时候关闭硬件访问，例如在程序退出时
+    battery = hardware_cache['battery']
+    return jsonify(battery)

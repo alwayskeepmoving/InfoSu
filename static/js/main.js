@@ -216,29 +216,32 @@ function fetchGPUInfo() {
         });
 }
 
-// 立即调用所有 API 请求以在页面加载时获取初始数据
-fetchMotherboardInfo();
-fetchCPUInfo();
-fetchMemoryInfo();
-fetchDiskInfo();
-fetchNetworkInfo();
-fetchBatteryInfo();
-fetchGPUInfo();
+document.addEventListener('DOMContentLoaded', function() {
+    // 调用所有 API 请求以在页面加载时获取初始数据
+    fetchMotherboardInfo();
+    fetchCPUInfo();
+    fetchMemoryInfo();
+    fetchDiskInfo();
+    fetchNetworkInfo();
+    fetchBatteryInfo();
+    fetchGPUInfo();
+});
+
 
 // Set individual intervals for each type of data
-const cpuInterval = setInterval(fetchCPUInfo, 1500);    // CPU info every 2 seconds
-const memoryInterval = setInterval(fetchMemoryInfo, 3000); // Memory info every 5 seconds
-const diskInterval = setInterval(fetchDiskInfo, 10000);  // Disk info every 10 seconds
-const betworkInterval = setInterval(fetchNetworkInfo, 1000); // Network info every 3 seconds
-const batteryInterval = setInterval(fetchBatteryInfo, 15000); // Battery info every 15 seconds
-const gpuInterval = setInterval(fetchGPUInfo, 1500);    // GPU info every 7 seconds
+const cpuInterval = setInterval(fetchCPUInfo, 1000);  
+const memoryInterval = setInterval(fetchMemoryInfo, 1000); 
+const diskInterval = setInterval(fetchDiskInfo, 10000); 
+const networkInterval = setInterval(fetchNetworkInfo, 1000); 
+const batteryInterval = setInterval(fetchBatteryInfo, 10000); 
+const gpuInterval = setInterval(fetchGPUInfo, 2000); 
 
 // 页面卸载时清理定时器
 window.addEventListener('beforeunload', () => {
     clearInterval(cpuInterval);
     clearInterval(memoryInterval);
     clearInterval(diskInterval);
-    clearInterval(betworkInterval);
+    clearInterval(networkInterval);
     clearInterval(batteryInterval);
     clearInterval(gpuInterval);
 });

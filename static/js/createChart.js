@@ -23,9 +23,9 @@ function createChart(canvasId, label, styleOptions = {}, maxDataPoints = 60) {
                 x: {
                     type: 'realtime', // 实时更新横轴
                     realtime: {
-                        duration: 60000, // 显示过去 30 秒的数据
-                        refresh: 1000, // 每秒更新一次数据
-                        delay: 3000, // 延迟 3 秒
+                        duration: 60000, // 显示过去 60 秒的数据
+                        refresh: 500, // 每0.5秒更新一次数据
+                        delay: 2000, // 延迟 2 秒
                     }
                 },
                 y: {
