@@ -4,7 +4,7 @@ function updateTime() {
     const formattedDay = now.toLocaleDateString('zh-CN', { weekday: 'long' }); // 使用本地时间格式
     const formattedTime = now.toLocaleTimeString('zh-CN'); // 使用本地时间格式
     const formattedDateTime = `${formattedDate} ${formattedDay}`;
-    document.getElementById('current-date').textContent = formattedDateTime;
+    // document.getElementById('current-date').textContent = formattedDateTime;
     document.getElementById('current-time').textContent = formattedTime;
 
 }
@@ -87,7 +87,7 @@ function fetchMemoryInfo() {
         .then(response => response.json())
         .then(data => {
             // 更新内存占用率
-            updateElement('memory-usage', `当前内存占用: ${data.memory_percent}%`);
+            updateElement('memory-usage', `当前内存占用: ${data.memory_percent}`);
 
             // 更新已使用内存/总内存
             updateElement('memory-used', `已使用内存: ${data.used_memory} / ${data.total_memory}`);
