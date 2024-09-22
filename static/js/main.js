@@ -1,12 +1,20 @@
 function updateTime() {
     const now = new Date();
-    const formattedDate = now.toLocaleDateString('zh-CN'); // 使用本地时间格式
-    const formattedDay = now.toLocaleDateString('zh-CN', { weekday: 'long' }); // 使用本地时间格式
+    const Day = now.toLocaleDateString('zh-CN', { weekday: 'long' }); // 使用本地时间格式
     const formattedTime = now.toLocaleTimeString('zh-CN'); // 使用本地时间格式
-    const formattedDateTime = `${formattedDate} ${formattedDay}`;
-    // document.getElementById('current-date').textContent = formattedDateTime;
+    const formattedDay = `(${Day.slice(2)})`
     document.getElementById('current-time').textContent = formattedTime;
-
+    document.getElementById('kanji').textContent = formattedDay;
+    const DateTime = now.getDate();
+    const formattedDate = `                    
+        <span>${DateTime - 2}</span>
+        <span>${DateTime - 1}</span>
+        <span id="current">
+        ${DateTime}
+        </span>
+        <span>${DateTime + 1}</span>
+        <span>${DateTime + 2}</span>`
+    document.getElementById('dateDOM').innerHTML = formattedDate;
 }
 // 每秒更新一次时间
 setInterval(updateTime, 1000);

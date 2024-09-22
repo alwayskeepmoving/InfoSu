@@ -130,7 +130,6 @@ body {
     justify-content: center;
     align-items: center;
     gap: 4px;
-    margin-left: 1vw;
 }
 
 #time-container .date span {
@@ -148,4 +147,15 @@ body {
 #time-container .date #current {
     font-weight: 500;
     border: 2px solid #cbcbcbb0;
+}
+
+#time-container .clock {
+    display: flex;
+    align-items: center;
+}
+
+#time-container #kanji {
+    font-size: 12px;
+    margin-left: .5vw;
+    margin-right: .5vw;
 }
