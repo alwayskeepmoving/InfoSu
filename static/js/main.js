@@ -48,7 +48,7 @@ function fetchMotherboardInfo() {
 
 // 初始化 CPU 图表
 const cpuChart = createChart('cpuChart', 'CPU 占用率 (%)', {
-    lineColor: 'rgba(72,190,230,1.00)', 
+    lineColor: 'rgba(72,190,230,1.00)',
     backgroundColor: 'rgba(29,76,92,0.40)'
 });
 
@@ -90,8 +90,8 @@ function fetchCPUInfo() {
 }
 
 // 初始化内存图表
-const memoryChart = createChart('memoryChart', '内存占用率 (%)',  {
-    lineColor: 'rgba(0,144,230,1.00)', 
+const memoryChart = createChart('memoryChart', '内存占用率 (%)', {
+    lineColor: 'rgba(0,144,230,1.00)',
     backgroundColor: 'rgba(0,58,92,0.40)'
 });
 
