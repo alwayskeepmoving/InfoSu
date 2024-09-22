@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Performance Monitor</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/master.css') }}">
+</head>
+
+<body>
+    <div id="root">
+        <div id="content-left">
+
+            <div draggable="true" class="section mt-20" id="time-section">
+                <div id="time-container">
+                    <h3 id="current-date"></h3>
+                    <h3 class="time" id="current-time"></h3>
+                </div>
+            </div>
+
+            <div draggable="true" class="section" id="cpu-section">
+                <h2>主板型号</h2>
+                <div id="motherboard-info-container">
+                    <p id="motherboard-model">型号：</p>
+                </div>
+            </div>
+
+            <div draggable="true" class="section" id="memory-section">
+                <h2>内存信息</h2>
+                <p id="memory-usage">当前内存占用: </p>
+                <p id="memory-used">已使用内存: </p>
+            </div>
+
+            <div draggable="true" class="section" id="network-section">
+                <h2>网络状态</h2>
+                <p id="net-rx">实时上行: </p>
+                <p id="net-tx">实时下行: </p>
+            </div>
+
+            <div draggable="true" class="section" id="battery-section">
+                <h2>电源状态</h2>
+                <div id="battery-info-container"></div>
+            </div>
+
+            <div draggable="true" class="section" id="disk-section">
+                <h2>磁盘占用率</h2>
+                <ul id="disk-usage"></ul>
+            </div>
+
+            <div draggable="true" class="section" id="cpu-section">
+                <h2>CPU 信息</h2>
+                <div id="cpu-info-container"></div>
+            </div>
+
+            <div draggable="true" class="section" id="gpu-section">
+                <h2>GPU 信息
+                    <br>
+                    <sub class="subText mb-10">*按照硬件地址排序</sub>
+                    <br>
+                </h2>
+                <!-- 这里将是动态插入每块 GPU 的信息 -->
+                <div class="mt-10" id="gpu-info-container"></div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

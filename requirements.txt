@@ -1,0 +1,4 @@
+Flask==3.0.3
+psutil==6.0.0
+py_cpuinfo==9.0.0
+pythonnet==3.0.4
