@@ -1,5 +1,4 @@
 
-
 function createChart(canvasId, label, styleOptions = {}, maxDataPoints = 60) {
     const { lineColor = 'rgba(75, 192, 192, 1)', backgroundColor = 'rgba(75, 192, 192, 0.2)' } = styleOptions;
     const ctx = document.getElementById(canvasId).getContext('2d');
