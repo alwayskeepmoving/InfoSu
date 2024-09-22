@@ -1,6 +1,7 @@
 
 
-function createChart(canvasId, label, maxDataPoints = 60) {
+function createChart(canvasId, label, styleOptions = {}, maxDataPoints = 60) {
+    const { lineColor = 'rgba(75, 192, 192, 1)', backgroundColor = 'rgba(75, 192, 192, 0.2)' } = styleOptions;
     const ctx = document.getElementById(canvasId).getContext('2d');
     const chart = new Chart(ctx, {
         type: 'line',
@@ -9,9 +10,10 @@ function createChart(canvasId, label, maxDataPoints = 60) {
             datasets: [{
                 label: label, // 图表的标签
                 data: [], // 图表的数据
-                borderColor: 'rgba(75, 192, 192, 1)', // 线条颜色
+                borderColor: lineColor, // 线条颜色
                 borderWidth: 2, // 线条宽度
                 fill: true, // 填充
+                backgroundColor: backgroundColor,
                 pointRadius: 0, // 隐藏数据点
                 pointStyle: 'line', // 确保数据点不会以其他样式显示
             }]
