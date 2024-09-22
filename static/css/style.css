@@ -15,12 +15,23 @@
 }
 
 #root {
-    background-image: url("../img/bg.jpg");
     width: 100%;
     height: 100vh;
+}
+
+#root::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("../img/bg.jpg");
     background-repeat: repeat;
-    background-size: cover;
+    background-size: cover; /* 根据需要调整背景的大小 */
     background-position: center;
+    filter: brightness(0.5); /* 调整背景图片亮度 */
+    z-index: -1; /* 确保背景图片不会遮挡内容 */
 }
 
 ::-webkit-scrollbar {
@@ -44,7 +55,7 @@ body {
 .section {
     margin: 20px 0 0 20px;
     height: auto;
-    width: 10vw;
+    width: 20vw;
     border: 1px solid #cbcbcbb0;
     padding: 1em;
     border-radius: 8px;
@@ -63,7 +74,12 @@ body {
 .section h2 {
     font-size: 20px;
 }
-
+/* 
+.section p{
+    color: white;
+    text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.7);
+}
+ */
 .section p,
 .section li,
 .section h3 {

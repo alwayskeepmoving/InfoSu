@@ -27,10 +27,17 @@
                 </div>
             </div>
 
+            <div draggable="true" class="section" id="cpu-section">
+                <h2>CPU 信息</h2>
+                <div id="cpu-info-container"></div>
+                <canvas id="cpuChart" width="400" height="150"></canvas> <!-- CPU 图表 -->
+            </div>
+
             <div draggable="true" class="section" id="memory-section">
                 <h2>内存信息</h2>
                 <p id="memory-usage">当前内存占用: </p>
                 <p id="memory-used">已使用内存: </p>
+                <canvas id="memoryChart" width="400" height="150"></canvas> <!-- 内存图表 -->
             </div>
 
             <div draggable="true" class="section" id="network-section">
@@ -49,11 +56,6 @@
                 <ul id="disk-usage"></ul>
             </div>
 
-            <div draggable="true" class="section" id="cpu-section">
-                <h2>CPU 信息</h2>
-                <div id="cpu-info-container"></div>
-            </div>
-
             <div draggable="true" class="section" id="gpu-section">
                 <h2>GPU 信息
                     <br>
@@ -66,6 +68,15 @@
         </div>
     </div>
     </div>
+
+    <!-- 引入js库 -->
+    <script src="{{ url_for('static', filename='js/lib/chart.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/chartjs-plugin-streaming.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/luxon.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/chartjs-adapter-luxon.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/createChart.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/drag.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 

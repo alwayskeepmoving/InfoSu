@@ -12,6 +12,8 @@ function updateTime() {
 setInterval(updateTime, 1000);
 updateTime(); // 初始调用，避免延迟
 
+/* 在这里放个分割线 */
+
 // Helper function to update the DOM
 function updateElement(id, text) {
     document.getElementById(id).innerText = text;
@@ -36,6 +38,9 @@ function fetchMotherboardInfo() {
         });
 }
 
+// 初始化 CPU 图表
+const cpuChart = createChart('cpuChart', 'CPU 占用率 (%)');
+
 // Fetch CPU information
 function fetchCPUInfo() {
     fetch('/api/cpu')
@@ -48,22 +53,33 @@ function fetchCPUInfo() {
             cpuSection.classList.add('cpu-section');
 
             cpuSection.innerHTML = `
-            
-            <p id="cpu-model">型号: ${data.cpu_model}</p>
-            <p id="cpu-usage">占用率: ${data.cpu_usage}</p>
-            <p id="cpu-core-usage">每核心占用: ${data.cpu_percent_per_core.join(', ')}</p>
-            <p id="cpu-temp">温度: ${data.cpu_temp}</p>
-            <p id="cpu-power">封装功耗: ${data.cpu_power}</p>
-            <p id="cpu-fan-speed">风扇转速: ${data.cpu_fan_speed}</p>
-        `;
+                <p id="cpu-model">型号: ${data.cpu_model}</p>
+                <p id="cpu-usage">占用率: ${data.cpu_usage}</p>
+                <p id="cpu-core-usage">每核心占用: ${data.cpu_percent_per_core.join(', ')}</p>
+                <p id="cpu-temp">温度: ${data.cpu_temp}°</p>
+                <p id="cpu-power">封装功耗: ${data.cpu_power} </p>
+                <p id="cpu-fan-speed">风扇转速: ${data.cpu_fan_speed} </p>
+            `;
 
-            // 将 GPU 信息插入容器
+            // 将 CPU 信息插入容器
             cpuContainer.appendChild(cpuSection);
+
+            // 更新 CPU 图表
+            const usageValue = parseFloat(data.cpu_usage); // 转换为数值
+            if (!isNaN(usageValue)) { // 确保转换成功
+                cpuChart.update(usageValue);
+            } else {
+                console.error('CPU usage is not a valid number:', data.cpu_usage);
+            }
+
         })
         .catch(error => {
             console.error('Error fetching CPU information:', error);
         });
 }
+
+// 初始化内存图表
+const memoryChart = createChart('memoryChart', '内存占用 (%)');
 
 // Fetch memory information
 function fetchMemoryInfo() {
@@ -71,10 +87,18 @@ function fetchMemoryInfo() {
         .then(response => response.json())
         .then(data => {
             // 更新内存占用率
-            updateElement('memory-usage', `当前内存占用: ${data.memory_percent}`);
+            updateElement('memory-usage', `当前内存占用: ${data.memory_percent}%`);
 
             // 更新已使用内存/总内存
             updateElement('memory-used', `已使用内存: ${data.used_memory} / ${data.total_memory}`);
+
+            // 更新内存图表
+            const usageValue = parseFloat(data.memory_percent); // 转换为数值
+            if (!isNaN(usageValue)) { // 确保转换成功
+                memoryChart.update(usageValue);
+            } else {
+                console.error('Memory percent is not a valid number:', data.memory_percent);
+            }
         })
         .catch(error => {
             console.error('Error fetching memory info:', error);
@@ -189,48 +213,19 @@ fetchBatteryInfo();
 fetchGPUInfo();
 
 // Set individual intervals for each type of data
-setInterval(fetchCPUInfo, 2000);    // CPU info every 2 seconds
-setInterval(fetchMemoryInfo, 3000); // Memory info every 5 seconds
-setInterval(fetchDiskInfo, 10000);  // Disk info every 10 seconds
-setInterval(fetchNetworkInfo, 1000); // Network info every 3 seconds
-setInterval(fetchBatteryInfo, 15000); // Battery info every 15 seconds
-setInterval(fetchGPUInfo, 1500);    // GPU info every 7 seconds
+const cpuInterval = setInterval(fetchCPUInfo, 1500);    // CPU info every 2 seconds
+const memoryInterval = setInterval(fetchMemoryInfo, 3000); // Memory info every 5 seconds
+const diskInterval = setInterval(fetchDiskInfo, 10000);  // Disk info every 10 seconds
+const betworkInterval = setInterval(fetchNetworkInfo, 1000); // Network info every 3 seconds
+const batteryInterval = setInterval(fetchBatteryInfo, 15000); // Battery info every 15 seconds
+const gpuInterval = setInterval(fetchGPUInfo, 1500);    // GPU info every 7 seconds
 
-const elements = document.querySelectorAll('.section');
-let draggedElement = null;
-
-elements.forEach(ele => {
-    ele.addEventListener('dragstart', dragStart);
-    ele.addEventListener('dragend', dragEnd);
-    ele.addEventListener('dragover', dragOver);
-    ele.addEventListener('drop', drop);
+// 页面卸载时清理定时器
+window.addEventListener('beforeunload', () => {
+    clearInterval(cpuInterval);
+    clearInterval(memoryInterval);
+    clearInterval(diskInterval);
+    clearInterval(betworkInterval);
+    clearInterval(batteryInterval);
+    clearInterval(gpuInterval);
 });
-
-function dragStart(event) {
-    draggedElement = this;
-    this.classList.add("moving");
-    event.dataTransfer.effectAllowed = 'move';
-}
-
-function dragEnd() {
-    this.classList.remove("moving");
-    draggedElement = null;
-}
-
-function dragOver(event) {
-    event.preventDefault(); // 允许放置
-}
-
-function drop(event) {
-    event.preventDefault();
-    if (draggedElement && draggedElement !== this) {
-        const draggedIndex = Array.from(elements).indexOf(draggedElement);
-        const targetIndex = Array.from(elements).indexOf(this);
-
-        if (draggedIndex < targetIndex) {
-            this.parentNode.insertBefore(draggedElement, this.nextSibling);
-        } else {
-            this.parentNode.insertBefore(draggedElement, this);
-        }
-    }
-}
