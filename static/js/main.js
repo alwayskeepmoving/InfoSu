@@ -19,7 +19,6 @@ function updateTime() {
 // 每秒更新一次时间
 setInterval(updateTime, 1000);
 updateTime(); // 初始调用，避免延迟
-
 /* 在这里放个分割线 */
 
 // Helper function to update the DOM
