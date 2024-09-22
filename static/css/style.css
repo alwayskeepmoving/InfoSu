@@ -28,10 +28,13 @@
     bottom: 0;
     background-image: url("../img/bg.jpg");
     background-repeat: repeat;
-    background-size: cover; /* 根据需要调整背景的大小 */
+    background-size: cover;
+    /* 根据需要调整背景的大小 */
     background-position: center;
-    filter: brightness(0.5); /* 调整背景图片亮度 */
-    z-index: -1; /* 确保背景图片不会遮挡内容 */
+    filter: brightness(0.5);
+    /* 调整背景图片亮度 */
+    z-index: -1;
+    /* 确保背景图片不会遮挡内容 */
 }
 
 ::-webkit-scrollbar {
@@ -74,6 +77,7 @@ body {
 .section h2 {
     font-size: 20px;
 }
+
 /* 
 .section p{
     color: white;
@@ -110,8 +114,6 @@ body {
 
 #time-container {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
     align-items: center;
 }
 
@@ -120,4 +122,30 @@ body {
     font-variant-numeric: tabular-nums;
     font-size: 30px;
     font-weight: 500;
+    letter-spacing: -2px;
+}
+
+#time-container .date {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    margin-left: 1vw;
+}
+
+#time-container .date span {
+    height: 30px;
+    width: 30px;
+    font-weight: 300;
+    font-size: 12px;
+    background-color: #00000022;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#time-container .date #current {
+    font-weight: 500;
+    border: 2px solid #cbcbcbb0;
 }
