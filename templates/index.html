@@ -45,8 +45,10 @@
 
             <div draggable="true" class="section" id="network-section">
                 <h2>网络状态</h2>
-                <p id="net-rx">实时上行: </p>
-                <p id="net-tx">实时下行: </p>
+                <p id="net-rx">实时下行: </p>
+                <canvas id="netRxChart" width="400" height="150"></canvas> <!-- 下行图表 -->
+                <p id="net-tx">实时上行: </p>
+                <canvas id="netTxChart" width="400" height="150"></canvas> <!-- 上行图表 -->
             </div>
 
             <div draggable="true" class="section" id="battery-section">

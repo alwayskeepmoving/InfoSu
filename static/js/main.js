@@ -48,7 +48,8 @@ function fetchMotherboardInfo() {
 // 初始化 CPU 图表
 const cpuChart = createChart('cpuChart', 'CPU 占用率 (%)', {
     lineColor: 'rgba(72,190,230,1.00)',
-    backgroundColor: 'rgba(29,76,92,0.40)'
+    backgroundColor: 'rgba(29,76,92,0.40)',
+    initialYMax: 100
 });
 
 // Fetch CPU information
@@ -91,7 +92,8 @@ function fetchCPUInfo() {
 // 初始化内存图表
 const memoryChart = createChart('memoryChart', '内存占用率 (%)', {
     lineColor: 'rgba(0,144,230,1.00)',
-    backgroundColor: 'rgba(0,58,92,0.40)'
+    backgroundColor: 'rgba(0,58,92,0.40)',
+    initialYMax: 100
 });
 
 // Fetch memory information
@@ -133,15 +135,91 @@ function fetchDiskInfo() {
         });
 }
 
-// Fetch network information
+// 初始化网络图表
+const netRxChart = createChart('netRxChart', '实时下行 (KB/s)', {
+    lineColor: 'rgba(72,230,172,1.00)',
+    backgroundColor: 'rgba(29,92,76,0.40)',
+    initialYMax: 1000, // 初始的 Y 轴最大值
+    dynamicYMax: true // 启用动态 YMax 更新
+});
+
+const netTxChart = createChart('netTxChart', '实时上行 (KB/s)', {
+    lineColor: 'rgba(230,72,104,1.00)',
+    backgroundColor: 'rgba(92,29,29,0.40)',
+    initialYMax: 500, // 初始的 Y 轴最大值
+    dynamicYMax: true // 启用动态 YMax 更新
+});
+
+// 帮助函数：将带单位的字符串解析为 KB/s 数值
+function parseSpeedToKB(speedStr) {
+    const speedRegex = /([\d.]+)\s*([A-Za-z]+\/s)/; // 匹配速度和单位
+    const match = speedStr.match(speedRegex);
+
+    if (match) {
+        const value = parseFloat(match[1]);
+        const unit = match[2];
+
+        switch (unit) {
+            case 'B/s':
+                return value / 1024; // 转换为 KB/s
+            case 'KB/s':
+                return value; // 保持 KB/s 不变
+            case 'MB/s':
+                return value * 1024; // 转换为 KB/s
+            case 'GB/s':
+                return value * 1024 * 1024; // 转换为 KB/s
+            default:
+                console.error('未知的单位:', unit);
+                return NaN;
+        }
+    } else {
+        console.error('无效的速度格式:', speedStr);
+        return NaN;
+    }
+}
+
+// 更新 DOM 元素的帮助函数
+function updateElement(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.innerText = value;
+    } else {
+        console.error(`Element with ID ${id} not found`);
+    }
+}
+
+// Fetch 网络信息并更新图表
 function fetchNetworkInfo() {
     fetch('/api/network')
         .then(response => response.json())
         .then(data => {
+            // 更新页面上的网络信息
             updateElement('net-rx', `实时下行: ${data.net_rx}`);
             updateElement('net-tx', `实时上行: ${data.net_tx}`);
+
+            // 将下行和上行速度转换为 KB/s
+            const netRxValue = parseSpeedToKB(data.net_rx);
+            const netTxValue = parseSpeedToKB(data.net_tx);
+
+            // 动态更新 netRxChart 图表
+            if (!isNaN(netRxValue)) {
+                netRxChart.update(netRxValue); // 使用图表内部的动态YMax逻辑
+            } else {
+                console.error('Net RX is not a valid number:', data.net_rx);
+            }
+
+            // 动态更新 netTxChart 图表
+            if (!isNaN(netTxValue)) {
+                netTxChart.update(netTxValue); // 使用图表内部的动态YMax逻辑
+            } else {
+                console.error('Net TX is not a valid number:', data.net_tx);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching network information:', error);
         });
 }
+
 
 // Fetch battery information
 function fetchBatteryInfo() {
@@ -215,6 +293,7 @@ function fetchGPUInfo() {
             console.error('Error fetching GPU information:', error);
         });
 }
+
 
 document.addEventListener('DOMContentLoaded', function() {
     // 调用所有 API 请求以在页面加载时获取初始数据
