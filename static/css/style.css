@@ -4,7 +4,7 @@
 }
 
 @font-face {
-    font-family: "JetBrains Mono";
+    font-family: "JetBrainsMono";
     src: url(../fonts/JB.woff2);
 }
 
@@ -42,7 +42,7 @@
 }
 
 body {
-    font-family: Inter, sans-serif, "JetBrains Mono";
+    font-family: Inter, JetBrainsMono, sans-serif;
     background-color: #000;
     color: #FFF;
 }
