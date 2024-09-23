@@ -1,4 +1,3 @@
-
 const elements = document.querySelectorAll('.section');
 let draggedElement = null;
 
