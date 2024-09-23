@@ -182,17 +182,17 @@ body {
     transition: width 0.5s ease;
 }
 
-/* 低使用率：小于60% */
+/* 低使用率 */
 .progress-bar.low {
     background-color: rgba(76, 175, 79, 0.4); /* 绿色 */
 }
 
-/* 中使用率：60% - 80% */
+/* 中使用率 */
 .progress-bar.medium {
     background-color: rgba(255, 153, 0, 0.4); /* 橙色 */
 }
 
-/* 高使用率：大于80% */
+/* 高使用率 */
 .progress-bar.high {
     background-color: rgba(244, 67, 54, 0.4); /* 红色 */
 }
@@ -208,4 +208,19 @@ body {
 
 .plugged-in {
     background: linear-gradient(to right, #4caf50, #81c784); /* 绿色渐变 */
+}
+
+/* 低电量 */
+.low {
+    background-color: rgba(244, 67, 54, 0.4); /* 红色 */
+}
+
+/* 中电量 */
+.medium {
+    background-color: rgba(255, 153, 0, 0.4); /* 橙色 */
+}
+
+/* 高电量 */
+.high {
+    background-color: rgba(76, 175, 79, 0.4); /* 绿色 */
 }
