@@ -46,22 +46,28 @@ def shutdown_scheduler():
     
     if scheduler.running:
         scheduler.shutdown(wait=False)
-        print("Scheduler shut down")
+        print("关闭任务中...")
 
 def run_app():
     try:
         # 创建和设置事件循环
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        print("创建和设置事件循环...")
         
         # 初始化硬件信息
         loop.run_until_complete(init_hardware())
+        print("初始化硬件信息...")
         
         # 启动调度器
         scheduler.start()
+        print("启动调度器...")
 
         # 运行 Flask 应用
-        app.run(debug=True, use_reloader=False)  # 禁用自动重载以避免 APScheduler 问题
+        host = '0.0.0.0'
+        port = 5000
+
+        app.run(debug=True, use_reloader=False, host=host, port=port)  # 禁用自动重载以避免 APScheduler 问题
     except Exception as e:
         print(f"发生异常: {e}")
         # 可考虑记录日志并决定是否重启
