@@ -186,6 +186,10 @@ except Exception as e:
 
 # 定义关闭处理函数
 def shutdown_scheduler():
+    # 关闭在 App 运行前的 Trackback，只保留自定义报错
+    import tempfile, sys
+    # 后续可使用 TemporaryFile() 生成本地日志
+    sys.stderr = tempfile.TemporaryFile()
     scheduler.shutdown(wait=False)
 
 # 注册关闭处理函数
