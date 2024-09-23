@@ -70,6 +70,13 @@
                 <!-- 这里将是动态插入每块 GPU 的信息 -->
                 <div class="mt-10" id="gpu-info-container"></div>
             </div>
+
+            <!-- 频谱可视化控件 -->
+            <div id="spectrum-container">
+                <canvas id="spectrumCanvas"></canvas>
+            </div>
+
+
         </div>
     </div>
     </div>
@@ -84,6 +91,8 @@
     <script src="{{ url_for('static', filename='js/createChart.js') }}"></script>
     <script src="{{ url_for('static', filename='js/drag.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/spectrum.js') }}"></script>
+
 </body>
 
 </html>

@@ -1,5 +1,8 @@
+# system_api.py
+
 import asyncio
 from flask import Blueprint, jsonify
+from .audio_visualization import spectrum_data  # 导入频谱数据
 import psutil
 import platform
 import cpuinfo  # 用于获取详细的 CPU 信息
@@ -316,3 +319,7 @@ async def get_gpu_info():
 def get_battery_info():
     battery = hardware_cache['battery']
     return jsonify(battery)
+
+@api_blueprint.route('/api/spectrum', methods=['GET'])
+def get_spectrum_info():
+    return jsonify(spectrum_data)

@@ -4,3 +4,6 @@ py_cpuinfo==9.0.0
 pythonnet==3.0.4
 apscheduler
 Flask[async]
+sounddevice 
+numpy 
+matplotlib

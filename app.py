@@ -5,6 +5,8 @@ import signal
 import asyncio
 from flask import Flask, render_template
 from api.system_api import api_blueprint, update_network_info, init_hardware, scheduler
+from api.audio_visualization import run_audio_listener
+
 import logging
 
 app = Flask(__name__)
@@ -54,6 +56,10 @@ def run_app():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         print("创建和设置事件循环...")
+
+        # 启动音频监听的异步任务
+        loop.create_task(run_audio_listener())
+        print("创建异步音频监听事件(用于频谱可视化)...")
         
         # 初始化硬件信息
         loop.run_until_complete(init_hardware())
@@ -68,6 +74,7 @@ def run_app():
         port = 5000
 
         app.run(debug=True, use_reloader=False, host=host, port=port)  # 禁用自动重载以避免 APScheduler 问题
+    
     except Exception as e:
         print(f"发生异常: {e}")
         # 可考虑记录日志并决定是否重启
