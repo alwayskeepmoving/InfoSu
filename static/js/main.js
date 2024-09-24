@@ -48,7 +48,8 @@ function fetchMotherboardInfo() {
 // 初始化 CPU 图表
 const cpuChart = createChart('cpuChart', 'CPU 占用率 (%)', {
     lineColor: 'rgba(72,190,230,1.00)',
-    backgroundColor: 'rgba(29,76,92,0.40)'
+    backgroundColor: 'rgba(29,76,92,0.40)',
+    initialYMax: 100
 });
 
 // Fetch CPU information
@@ -91,7 +92,8 @@ function fetchCPUInfo() {
 // 初始化内存图表
 const memoryChart = createChart('memoryChart', '内存占用率 (%)', {
     lineColor: 'rgba(0,144,230,1.00)',
-    backgroundColor: 'rgba(0,58,92,0.40)'
+    backgroundColor: 'rgba(0,58,92,0.40)',
+    initialYMax: 100
 });
 
 // Fetch memory information
@@ -124,24 +126,144 @@ function fetchDiskInfo() {
         .then(response => response.json())
         .then(data => {
             const diskUsageElement = document.getElementById('disk-usage');
-            diskUsageElement.innerHTML = ''; // Clear the previous content
-            data.disk_usage.forEach(disk => {
+            diskUsageElement.innerHTML = ''; // 清空之前的内容
+
+            const diskCount = data.disk_usage.length; // 获取磁盘总数
+            
+            data.disk_usage.forEach((disk, index) => {
                 const listItem = document.createElement('li');
-                listItem.textContent = `分区: ${disk.device}, 使用情况: ${disk.used} / ${disk.total}, 百分比: ${disk.percent}`;
+                
+                // 创建文字信息
+                const textInfo = document.createElement('p');
+                textInfo.innerHTML  = `分区: ${disk.device} <br> 使用情况: ${disk.used} / ${disk.total} <br> <div style="text-align: right;">${disk.percent}</div>`;
+                listItem.appendChild(textInfo);
+
+                // 创建进度条容器
+                const progressBarContainer = document.createElement('div');
+                progressBarContainer.classList.add('progress-bar-container'); // 使用 CSS 样式
+
+                // 创建进度条
+                const progressBar = document.createElement('div');
+                progressBar.classList.add('progress-bar'); // 使用 CSS 样式
+                progressBar.style.width = `${disk.percent}`; // 动态设置宽度为百分比
+
+                // 根据占用率百分比设置颜色
+                const usagePercent = parseFloat(disk.percent);
+                if (usagePercent < 60) {
+                    progressBar.classList.add('low'); // 低占用率 - 绿色
+                } else if (usagePercent < 80) {
+                    progressBar.classList.add('medium'); // 中等占用率 - 橙色
+                } else {
+                    progressBar.classList.add('high'); // 高占用率 - 红色
+                }
+
+                // 将进度条添加到容器中
+                progressBarContainer.appendChild(progressBar);
+                
+                // 将文字和进度条添加到列表项中
+                listItem.appendChild(progressBarContainer);
+
+                // 将列表项添加到父元素中
                 diskUsageElement.appendChild(listItem);
+
+                // 如果不是最后一个磁盘，加换行
+                if (index < diskCount - 1) {
+                    const lineBreak = document.createElement('br');
+                    diskUsageElement.appendChild(lineBreak);
+                }
             });
+        })
+        .catch(error => {
+            console.error('Error fetching disk information:', error);
         });
 }
 
-// Fetch network information
+
+// 初始化网络图表
+const netRxChart = createChart('netRxChart', '实时下行 (KB/s)', {
+    lineColor: 'rgba(72,230,172,1.00)',
+    backgroundColor: 'rgba(29,92,76,0.40)',
+    initialYMax: 1000, // 初始的 Y 轴最大值
+    dynamicYMax: true // 启用动态 YMax 更新
+});
+
+const netTxChart = createChart('netTxChart', '实时上行 (KB/s)', {
+    lineColor: 'rgba(230,72,104,1.00)',
+    backgroundColor: 'rgba(92,29,29,0.40)',
+    initialYMax: 500, // 初始的 Y 轴最大值
+    dynamicYMax: true // 启用动态 YMax 更新
+});
+
+// 帮助函数：将带单位的字符串解析为 KB/s 数值
+function parseSpeedToKB(speedStr) {
+    const speedRegex = /([\d.]+)\s*([A-Za-z]+\/s)/; // 匹配速度和单位
+    const match = speedStr.match(speedRegex);
+
+    if (match) {
+        const value = parseFloat(match[1]);
+        const unit = match[2];
+
+        switch (unit) {
+            case 'B/s':
+                return value / 1024; // 转换为 KB/s
+            case 'KB/s':
+                return value; // 保持 KB/s 不变
+            case 'MB/s':
+                return value * 1024; // 转换为 KB/s
+            case 'GB/s':
+                return value * 1024 * 1024; // 转换为 KB/s
+            default:
+                console.error('未知的单位:', unit);
+                return NaN;
+        }
+    } else {
+        console.error('无效的速度格式:', speedStr);
+        return NaN;
+    }
+}
+
+// 更新 DOM 元素的帮助函数
+function updateElement(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.innerText = value;
+    } else {
+        console.error(`Element with ID ${id} not found`);
+    }
+}
+
+// Fetch 网络信息并更新图表
 function fetchNetworkInfo() {
     fetch('/api/network')
         .then(response => response.json())
         .then(data => {
+            // 更新页面上的网络信息
             updateElement('net-rx', `实时下行: ${data.net_rx}`);
             updateElement('net-tx', `实时上行: ${data.net_tx}`);
+
+            // 将下行和上行速度转换为 KB/s
+            const netRxValue = parseSpeedToKB(data.net_rx);
+            const netTxValue = parseSpeedToKB(data.net_tx);
+
+            // 动态更新 netRxChart 图表
+            if (!isNaN(netRxValue)) {
+                netRxChart.update(netRxValue); // 使用图表内部的动态YMax逻辑
+            } else {
+                console.error('Net RX is not a valid number:', data.net_rx);
+            }
+
+            // 动态更新 netTxChart 图表
+            if (!isNaN(netTxValue)) {
+                netTxChart.update(netTxValue); // 使用图表内部的动态YMax逻辑
+            } else {
+                console.error('Net TX is not a valid number:', data.net_tx);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching network information:', error);
         });
 }
+
 
 // Fetch battery information
 function fetchBatteryInfo() {
@@ -157,15 +279,49 @@ function fetchBatteryInfo() {
             if (data.status === '未检测到电池') {
                 batterySection.innerHTML = `
                 <p id="battery-status">状态: ${data.status}</p>
-                <p id="battery-power-source">电源: ${data.power_source}</p>
-            `;
+                <p id="battery-power-source">电源: ${data.power_source}</p> <br>
+                `;
+                // 添加灰色进度条
+                const progressBarContainer = document.createElement('div');
+                progressBarContainer.classList.add('progress-bar-container');
+                const progressBar = document.createElement('div');
+                progressBar.classList.add('progress-bar', 'not-detected');
+                progressBar.style.width = '100%'; // 充满
+                progressBarContainer.appendChild(progressBar);
+                batterySection.appendChild(progressBarContainer);
             } else {
                 batterySection.innerHTML = `
                 <p id="battery-percent">电池百分比: ${data.percent}</p>
                 <p id="battery-time-left">剩余时间: ${data.time_left}</p>
                 <p id="battery-power-plugged">电源插入: ${data.power_plugged}</p>
                 <p id="battery-status">状态: ${data.status}</p>
-            `;
+                `;
+
+                // 添加进度条
+                const progressBarContainer = document.createElement('div');
+                progressBarContainer.classList.add('progress-bar-container');
+                const progressBar = document.createElement('div');
+                progressBar.classList.add('progress-bar');
+
+                const batteryPercent = parseFloat(data.percent);
+                progressBar.style.width = `${batteryPercent}%`; // 根据电池百分比动态设置宽度
+                
+                // 根据是否插电设置样式
+                if (data.power_plugged) {
+                    progressBar.classList.add('plugged-in'); // 插电状态
+                } else {
+                    // 根据电池百分比设置颜色
+                    if (batteryPercent < 20) {
+                        progressBar.classList.add('low'); // 低电量 - 红色
+                    } else if (batteryPercent < 50) {
+                        progressBar.classList.add('medium'); // 中等电量 - 橙色
+                    } else {
+                        progressBar.classList.add('high'); // 高电量 - 绿色
+                    }
+                }
+
+                progressBarContainer.appendChild(progressBar);
+                batterySection.appendChild(progressBarContainer);
             }
 
             // 将电池信息插入容器
@@ -175,6 +331,7 @@ function fetchBatteryInfo() {
             console.error('Error fetching battery information:', error);
         });
 }
+
 
 // Fetch GPU information
 function fetchGPUInfo() {
@@ -215,6 +372,7 @@ function fetchGPUInfo() {
             console.error('Error fetching GPU information:', error);
         });
 }
+
 
 document.addEventListener('DOMContentLoaded', function() {
     // 调用所有 API 请求以在页面加载时获取初始数据

@@ -3,4 +3,11 @@ psutil==6.0.0
 py_cpuinfo==9.0.0
 pythonnet==3.0.4
 apscheduler
+<<<<<<< HEAD
 Flask[async]
+=======
+Flask[async]
+sounddevice 
+numpy 
+matplotlib
+>>>>>>> ce19007969ecbf5e01d4731cae3bf4b2e075ee61
