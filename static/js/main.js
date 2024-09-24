@@ -21,6 +21,23 @@ setInterval(updateTime, 1000);
 updateTime(); // 初始调用，避免延迟
 /* 在这里放个分割线 */
 
+
+function changeWidth() {
+    const clock = document.getElementById("time-container");
+    const time = document.getElementById("time-section");
+    const c = window.getComputedStyle(clock)["width"];
+    const t = window.getComputedStyle(time)["width"];
+    const formatc = Number(c.slice(0, -2));
+    const formatt = Number(t.slice(0, -2));
+    console.log(c, t);
+    console.log(formatc, formatt);
+    if (formatc > formatt) {
+        console.log("溢出了！")
+    } else {
+        console.log("没有超过！")
+    }
+}
+
 // Helper function to update the DOM
 function updateElement(id, text) {
     document.getElementById(id).innerText = text;
@@ -129,13 +146,13 @@ function fetchDiskInfo() {
             diskUsageElement.innerHTML = ''; // 清空之前的内容
 
             const diskCount = data.disk_usage.length; // 获取磁盘总数
-            
+
             data.disk_usage.forEach((disk, index) => {
                 const listItem = document.createElement('li');
-                
+
                 // 创建文字信息
                 const textInfo = document.createElement('p');
-                textInfo.innerHTML  = `分区: ${disk.device} <br> 使用情况: ${disk.used} / ${disk.total} <br> <div style="text-align: right;">${disk.percent}</div>`;
+                textInfo.innerHTML = `分区: ${disk.device} <br> 使用情况: ${disk.used} / ${disk.total} <br> <div style="text-align: right;">${disk.percent}</div>`;
                 listItem.appendChild(textInfo);
 
                 // 创建进度条容器
@@ -159,7 +176,7 @@ function fetchDiskInfo() {
 
                 // 将进度条添加到容器中
                 progressBarContainer.appendChild(progressBar);
-                
+
                 // 将文字和进度条添加到列表项中
                 listItem.appendChild(progressBarContainer);
 
@@ -305,7 +322,7 @@ function fetchBatteryInfo() {
 
                 const batteryPercent = parseFloat(data.percent);
                 progressBar.style.width = `${batteryPercent}%`; // 根据电池百分比动态设置宽度
-                
+
                 // 根据是否插电设置样式
                 if (data.power_plugged) {
                     progressBar.classList.add('plugged-in'); // 插电状态
@@ -374,7 +391,7 @@ function fetchGPUInfo() {
 }
 
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 调用所有 API 请求以在页面加载时获取初始数据
     fetchMotherboardInfo();
     fetchCPUInfo();
@@ -387,12 +404,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 // Set individual intervals for each type of data
-const cpuInterval = setInterval(fetchCPUInfo, 1000);  
-const memoryInterval = setInterval(fetchMemoryInfo, 1000); 
-const diskInterval = setInterval(fetchDiskInfo, 10000); 
-const networkInterval = setInterval(fetchNetworkInfo, 1000); 
-const batteryInterval = setInterval(fetchBatteryInfo, 10000); 
-const gpuInterval = setInterval(fetchGPUInfo, 2000); 
+const cpuInterval = setInterval(fetchCPUInfo, 1000);
+const memoryInterval = setInterval(fetchMemoryInfo, 1000);
+const diskInterval = setInterval(fetchDiskInfo, 10000);
+const networkInterval = setInterval(fetchNetworkInfo, 1000);
+const batteryInterval = setInterval(fetchBatteryInfo, 10000);
+const gpuInterval = setInterval(fetchGPUInfo, 2000);
 
 // 页面卸载时清理定时器
 window.addEventListener('beforeunload', () => {
